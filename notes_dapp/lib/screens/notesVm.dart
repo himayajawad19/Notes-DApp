@@ -17,7 +17,7 @@ class Notesvm extends ChangeNotifier {
   final String _rpcUrl = 'http://10.0.2.2:7545';
   final String _wscUrl = 'ws://10.0.2.2:7545';
   final String _privateKey =
-      "0x23e5a98536a91dfbcda641f2f7d46bbb0b56a51dc5eaa35146d56d72c084aa5d";
+      "0x9e56e4f9eb05e02eecc61c8d77611c0f90329945aa95ebc1597a1042b02ee079";
   late Web3Client _web3Client;
   late ContractAbi _contractAbi;
   late EthereumAddress _contractAddress;
@@ -28,6 +28,21 @@ class Notesvm extends ChangeNotifier {
   late ContractFunction _editNote;
   late ContractFunction _notes;
   late ContractFunction _noteCount;
+  bool _isEdit = false;
+  bool _isLoading = false;
+
+  bool get isEdit => _isEdit;
+  bool get isLoading => _isLoading;
+
+  set isEdit(bool value) {
+    _isEdit = value;
+    notifyListeners();
+  }
+
+  set isLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
 
   Notesvm() {
     init();
@@ -35,7 +50,9 @@ class Notesvm extends ChangeNotifier {
 
   // Initializing web3client
   Future init() async {
-    await Future.delayed(Duration(seconds: 2));
+    // await Future.delayed(Duration(seconds: 2));
+    isLoading = true;
+    notifyListeners();
     _web3Client = Web3Client(
       _rpcUrl,
       http.Client(),
@@ -48,6 +65,8 @@ class Notesvm extends ChangeNotifier {
     await getCred();
     await getDeployedContract();
     await getNotes();
+     isLoading = false;
+        notifyListeners();
   }
 
   // Getting Abi
@@ -59,7 +78,7 @@ class Notesvm extends ChangeNotifier {
       "Notes.json",
     );
     _contractAddress = EthereumAddress.fromHex(
-      "0xf55a0E16d7E786339DfAd25E5E2b391D87Dd5D9e",
+      "0xAB8801EA0993Df6aBF6d0bba491d223567e00709",
     );
   }
 
@@ -77,6 +96,8 @@ class Notesvm extends ChangeNotifier {
   }
 
   Future<void> getNotes() async {
+       isLoading = true;
+       notifyListeners();
     List totalTaskList = await _web3Client.call(
       contract: _deployedContract,
       function: _noteCount,
@@ -93,15 +114,19 @@ class Notesvm extends ChangeNotifier {
       if (temp[1] != "") {
         notes.add(
           NotesModel(
-            title: temp[2],
-            description: temp[1],
+            time: DateTime.fromMillisecondsSinceEpoch(
+              (temp[3] as BigInt).toInt() * 1000,
+            ),
+
+            title: temp[1],
+            description: temp[2],
             id: (temp[0] as BigInt).toInt(),
           ),
         );
       }
-      log("Note ID: ${temp[2]}, Title: ${temp[0]}");
+      log("Note ID: ${temp[2]}}");
     }
-
+isLoading= false;
     notifyListeners();
   }
 
@@ -116,12 +141,14 @@ class Notesvm extends ChangeNotifier {
         parameters: [title, description],
       ),
     );
+
     notifyListeners();
     getNotes();
   }
 
   Future<void> deleteNote(int id) async {
     log(id.toString());
+
     await _web3Client.sendTransaction(
       chainId: 1337,
       fetchChainIdFromNetworkId: false,
@@ -134,5 +161,29 @@ class Notesvm extends ChangeNotifier {
     );
     notifyListeners();
     getNotes();
+  }
+
+  Future<void> editNote(int noteId, String title, String description) async {
+    log(noteId.toString());
+    await _web3Client.sendTransaction(
+      chainId: 1337,
+      fetchChainIdFromNetworkId: false,
+      _creds,
+      Transaction.callContract(
+        contract: _deployedContract,
+        function: _editNote,
+        parameters: [BigInt.from(noteId), title, description],
+      ),
+    );
+    notifyListeners();
+    getNotes();
+  }
+
+  void setData(int index) {
+    if (isEdit) {
+      titleController.text = notes[index].title;
+      descriptionController.text = notes[index].description;
+    }
+    notifyListeners();
   }
 }
