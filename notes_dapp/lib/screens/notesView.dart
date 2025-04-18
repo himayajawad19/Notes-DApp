@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
@@ -121,8 +123,10 @@ class Notesview extends StatelessWidget {
                                   return Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.start,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Container(
                                           decoration: BoxDecoration(
@@ -233,10 +237,22 @@ class Notesview extends StatelessWidget {
                                           ),
                                           SizedBox(width: 4.w),
                                           InkWell(
-                                            onTap:
-                                                () => vm.deleteNote(
-                                                  vm.notes[index].id,
-                                                ),
+                                            onTap: () {
+                                              // vm.deleteNote(
+                                              //       vm.notes[index].id);
+                                              warningDialog(
+                                                context,
+                                                "Delete note?",
+                                                onTapped: () {
+                                                  log("delete");
+                                                  vm.deleteNote(
+                                                    vm.notes[index].id,
+                                                  );
+                                                  Navigator.pop(context);
+                                                },
+                                              );
+                                            },
+
                                             child: Icon(
                                               Icons.delete,
                                               size: 16.sp,
@@ -308,6 +324,7 @@ class Notesview extends StatelessWidget {
             vm.titleController.clear();
             vm.descriptionController.clear();
             Navigator.of(context).pop(); // Close dialog
+            vm.isEdit = false;
           },
           style: TextButton.styleFrom(foregroundColor: Colors.red),
           child: Text('Cancel'),
@@ -321,11 +338,68 @@ class Notesview extends StatelessWidget {
                 : vm.createNote(title, description);
             vm.titleController.clear();
             vm.descriptionController.clear();
+            vm.isEdit = false;
             Navigator.of(context).pop(); // Close dialog
           },
           child: Text(vm.isEdit ? 'Edit Note' : 'Add'),
         ),
       ],
+    );
+  }
+
+  void warningDialog(
+    BuildContext context,
+    String content, {
+    Function()? onTapped,
+    Function()? onCancel,
+    String? save,
+    String? cancel,
+  }) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey.shade900,
+              content: Text(
+                content,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Lexend',
+                  color: Colors.white,
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: AppColors.primaryColor,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 5.h),
+                TextButton(
+                  onPressed: onTapped,
+                  child: Text(
+                    'Yes',
+                    style: TextStyle(
+                      color: AppColors.primaryColor,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
